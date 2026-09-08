@@ -174,12 +174,28 @@ nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; bor
   text-wrap: balance;
 }
 .content section > h2 { text-align: center; }
-.lede {
-  font-size: 1.32rem;
+/* Page openers: a real title, a flowing line, and a punch. */
+.content h2.page-title {
+  font-size: 2.1rem;
   font-weight: 600;
-  line-height: 1.45;
   text-align: center;
   text-wrap: balance;
+  margin: 0 0 .9rem;
+}
+.lede-soft {
+  font-size: 1.28rem;
+  line-height: 1.55;
+  text-align: center;
+  text-wrap: balance;
+  max-width: 34rem;
+  margin: 0 auto 1.1rem;
+}
+.punch {
+  font-size: 1.7rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--dot, var(--ink));
+  transition: color .45s ease;
   margin: 0 0 2.4rem;
 }
 .content section { margin-bottom: 2.6rem; }
@@ -287,44 +303,6 @@ nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; bor
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: none; }
 }
-#arrow-reveal:not([hidden]) { animation: rise-in .9s ease; }
-.big-quote {
-  font-size: 1.7rem;
-  font-weight: 600;
-  line-height: 1.4;
-  text-align: center;
-  text-wrap: balance;
-  margin: 2.4rem 0 .7rem;
-}
-.quote-src {
-  text-align: center;
-  color: var(--ink-soft);
-  font-style: italic;
-  font-size: .98rem;
-}
-.again-row {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: .9rem;
-  margin-top: 1.5rem;
-}
-#try-again {
-  font-family: inherit;
-  font-size: .98rem;
-  font-style: italic;
-  color: var(--ink);
-  background: var(--card);
-  border: none;
-  border-radius: .9rem;
-  padding: .4rem 1.05rem;
-  cursor: pointer;
-  transition: background .3s ease, color .3s ease;
-}
-#try-again:hover {
-  background: var(--dot, var(--ink));
-  color: var(--ground);
-}
 
 /* A piece of writing: the full page, poems centered, images breathing. */
 .piece-title {
@@ -416,9 +394,9 @@ nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; bor
   margin: 1.4rem 0;
 }
 
+
 @media (prefers-reduced-motion: reduce) {
   .breath { animation: none; }
   nav a[aria-current="page"] { animation: none; }
   .timeline .entry.now::before { animation: none; }
-  #arrow-reveal:not([hidden]) { animation: none; }
-}
+  

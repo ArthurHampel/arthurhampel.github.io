@@ -23,14 +23,6 @@
 
   <div class="content">
     <div class="range-wrap"><canvas id="range"></canvas></div>
-    <div id="arrow-reveal" hidden>
-      <p class="big-quote">Shall we not, like archers who have a mark to aim at, be more likely to hit upon what is right?</p>
-      <p class="quote-src">Aristotle, <a href="http://classics.mit.edu/Aristotle/nicomachaen.1.i.html">Nicomachean Ethics</a></p>
-      <div class="again-row">
-        <button id="try-again" type="button">Try again</button>
-        <span class="quiet" id="hit-count"></span>
-      </div>
-    </div>
   </div>
 </main>
 <script src="site.js"></script>
@@ -52,11 +44,10 @@ function initArrowGame() {
   size(); window.addEventListener('resize', size);
 
   const bow = () => ({ x: 60, y: H - 60 });
-  const target = () => ({ x: W - 74, y: 100, r: Math.min(44, W * .09), dot: 15 });
+  const target = () => ({ x: W - 74, y: 100, r: Math.min(44, W * .09), dot: 13 });
 
   let start = null, drag = null, flight = null;
   const stuck = [];
-  let shots = 0, hit = false, hitsCount = 0;
   const rootS = document.documentElement.style; // the shared dot color lives on the root
   const ALL = ['#3E6B5A', '#7A4A24', '#A6803A', '#8B3A3A', '#3A5A8B', '#6B4A8B'];
   const dotColor = () => rootS.getPropertyValue('--dot').trim();
@@ -64,9 +55,10 @@ function initArrowGame() {
     const i = ALL.indexOf(dotColor());
     const next = i < 0 ? ALL[0] : ALL[(i + 1) % ALL.length];
     rootS.setProperty('--dot', next); // every dot and header reads this
+    try { localStorage.setItem('dot-color', next); } catch (e) {}
     return next;
   }
-  const K = 8, PULL = 87, G = 620; // short draw: power is capped, so you have to loft it
+  const K = 8, PULL = 80, G = 620; // short draw: power is capped, so you have to loft it
 
   canvas.addEventListener('pointerdown', e => {
     if (flight) return;
@@ -97,24 +89,11 @@ function initArrowGame() {
       dx *= cap; dy *= cap;
       const b = bow();
       flight = { x: b.x, y: b.y, vx: dx * K, vy: dy * K };
-      shots++;
     }
     start = drag = null;
   });
 
-  const againBtn = document.getElementById('try-again');
-  if (againBtn) againBtn.addEventListener('click', () => {
-    stuck.length = 0; // a clean target; the count and the quote stay
-    canvas.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  });
 
-  function reveal() {
-    const el = document.getElementById('arrow-reveal');
-    const note = document.getElementById('arrow-note');
-    if (note) note.textContent = shots === 1 ? 'first arrow.' : shots + ' arrows.';
-    if (el) el.hidden = false;
-    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
 
   function drawArrow(x1, y1, x2, y2, color) {
     ctx.strokeStyle = color; ctx.lineWidth = 2.5;
@@ -142,14 +121,10 @@ function initArrowGame() {
       flight.y += flight.vy * dt;
       const t = target();
       const d = Math.hypot(flight.x - t.x, flight.y - t.y);
-      if (d < t.dot + 2) {
+      if (d < t.dot) {
         // the point itself: the color changes with every hit, here and in the site's own target
         const next = cycleDot();
         stuck.push({ x: flight.x, y: flight.y, a: Math.atan2(flight.vy, flight.vx), color: next });
-        hitsCount++;
-        const hc = document.getElementById('hit-count');
-        if (hc) hc.textContent = hitsCount + (hitsCount === 1 ? ' hit' : ' hits');
-        if (!hit) { hit = true; reveal(); }
         flight = null;
       } else if (flight.x > W + 60 || flight.y > H + 60 || flight.x < -60) {
         flight = null;
