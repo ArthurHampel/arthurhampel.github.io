@@ -7,6 +7,8 @@
   --rule: #E4E1D8;
   --breath: 4.8s;
   --card: #201E190D;
+  --ground-old: #DCC28F;
+  --ground-new: #FFFFFF;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -17,6 +19,8 @@
     --accent-soft: #7FAE9B2E;
     --rule: #2C2A23;
     --card: #E8E5DC12;
+    --ground-old: #2E2310;
+    --ground-new: #101010;
   }
 }
 :root[data-theme="dark"] {
@@ -27,6 +31,8 @@
   --accent-soft: #7FAE9B2E;
   --rule: #2C2A23;
   --card: #E8E5DC12;
+  --ground-old: #2E2310;
+  --ground-new: #101010;
 }
 
 * { box-sizing: border-box; }
@@ -216,11 +222,10 @@ nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; bor
   margin: 0 auto 1.1rem;
 }
 .punch {
-  font-size: 1.7rem;
-  font-weight: 700;
+  font-size: 1.25rem;
+  font-weight: 400;
   text-align: center;
-  color: var(--dot, var(--ink));
-  transition: color .45s ease;
+  color: var(--ink);
   margin: 0 0 2.4rem;
 }
 .content section { margin-bottom: 2.6rem; }
@@ -425,6 +430,50 @@ nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; bor
 .convo { margin-top: .5rem; }
 .convo p { margin: 0 0 1.35rem; }
 .convo .who { font-weight: 600; color: var(--ink-soft); }
+
+
+/* A quiet slider in the margin: a dot riding the page's years. */
+.timescroll {
+  position: fixed;
+  top: 24vh;
+  height: 52vh;
+  right: calc(50vw - 23rem);
+  width: 2px;
+  background: var(--rule);
+  z-index: 4;
+}
+.ts-dot {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: .55rem;
+  height: .55rem;
+  border-radius: 50%;
+  background: var(--dot, var(--ink));
+  transition: background .45s ease;
+}
+.ts-year {
+  position: absolute;
+  right: .8rem;
+  transform: translateY(-50%);
+  font-size: .8rem;
+  font-style: italic;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+@media (max-width: 54rem) {
+  .timescroll { display: none; }
+}
+
+
+/* Scrolling the year-sorted pages moves you through eras:
+   the page starts on aged paper and clears as you reach the present. */
+:root { --era: 1; }
+@supports (background: color-mix(in oklab, red 50%, blue)) {
+  body.era-scroll {
+    background: color-mix(in oklab, var(--ground-old) calc((1 - var(--era)) * 100%), var(--ground-new));
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .breath { animation: none; }
