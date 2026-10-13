@@ -19,11 +19,23 @@
     <a href="writing.html">Writing</a>
     <a href="fascinating-thoughts.html">Fascinating Thoughts</a>
     <a href="conversations.html">Conversations</a>
+    <a href="arrow.html" aria-current="page">Fly Curse</a>
+  </nav>
+
+  <nav class="subnav" aria-label="Games">
     <a href="arrow.html" aria-current="page">Arrow</a>
+    <a href="snake.html">Snake</a>
   </nav>
 
   <div class="content">
-    <div class="range-wrap"><canvas id="range"></canvas></div>
+    <div class="gate" id="gate-arrow" hidden>
+      <input type="password" placeholder="password" autocomplete="off" aria-label="Password">
+    </div>
+    <div id="area-arrow" hidden>
+      <div class="range-wrap"><canvas id="range"></canvas></div>
+      <p class="quiet score" id="arrow-score"></p>
+      <div class="board" id="board-arrow" hidden></div>
+    </div>
   </div>
 </main>
 <script src="site.js"></script>
@@ -49,6 +61,20 @@ function initArrowGame() {
 
   let start = null, drag = null, flight = null;
   const stuck = [];
+  let hitsCount = 0;
+  function drawScore() {
+    let best = 0;
+    try { best = +localStorage.getItem('arrow-best') || 0; } catch (e) {}
+    if (hitsCount > best) {
+      best = hitsCount;
+      try { localStorage.setItem('arrow-best', best); } catch (e) {}
+      fcSubmit('arrow', best); // a new best flies up to the shared leaderboard
+    }
+    const sc = document.getElementById('arrow-score');
+    const nm = fcName();
+    if (sc) sc.textContent = (nm ? nm + ' · ' : '') + hitsCount + (hitsCount === 1 ? ' hit' : ' hits') + (best ? ' · best ' + best : '');
+  }
+  drawScore();
   const rootS = document.documentElement.style; // the shared dot color lives on the root
   const ALL = ['#3E6B5A', '#7A4A24', '#A6803A', '#8B3A3A', '#3A5A8B', '#6B4A8B'];
   const dotColor = () => rootS.getPropertyValue('--dot').trim();
@@ -59,7 +85,7 @@ function initArrowGame() {
     try { localStorage.setItem('dot-color', next); } catch (e) {}
     return next;
   }
-  const K = 8, PULL = 80, G = 620; // short draw: power is capped, so you have to loft it
+  const K = 8, PULL = 84, G = 620; // short draw: power is capped, so you have to loft it
 
   canvas.addEventListener('pointerdown', e => {
     if (flight) return;
@@ -126,6 +152,8 @@ function initArrowGame() {
         // the point itself: the color changes with every hit, here and in the site's own target
         const next = cycleDot();
         stuck.push({ x: flight.x, y: flight.y, a: Math.atan2(flight.vy, flight.vx), color: next });
+        hitsCount++;
+        drawScore();
         flight = null;
       } else if (flight.x > W + 60 || flight.y > H + 60 || flight.x < -60) {
         flight = null;
@@ -192,7 +220,54 @@ function initArrowGame() {
   }
   requestAnimationFrame(frame);
 }
-initArrowGame();
+function gateFor(which, init) {
+  const gate = document.getElementById('gate-' + which);
+  const area = document.getElementById('area-' + which);
+  const inp = gate.querySelector('input');
+  let ok = false, name = '';
+  try {
+    ok = localStorage.getItem('flycurse-ok') === '1';
+    name = localStorage.getItem('flycurse-name') || '';
+  } catch (e) {}
+  function open() {
+    gate.hidden = true; area.hidden = false;
+    setTimeout(init, 30);
+    try { const b = +localStorage.getItem(which + '-best') || 0; if (b) fcSubmit(which, b); } catch (e) {}
+    fcBoard(which);
+  }
+  function askName() {
+    gate.hidden = false; area.hidden = true;
+    inp.type = 'text'; inp.value = '';
+    inp.placeholder = 'your name'; inp.maxLength = 24;
+    inp.setAttribute('aria-label', 'Your name');
+    setTimeout(() => inp.focus(), 60);
+  }
+  if (ok && name) { open(); return; }
+  if (ok) { askName(); } else {
+    gate.hidden = false; area.hidden = true;
+    setTimeout(() => inp.focus(), 60);
+  }
+  if (!inp.dataset.wired) {
+    inp.dataset.wired = '1';
+    inp.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      if (!ok) {
+        if (inp.value.trim().toLowerCase() === 'flycurse') {
+          ok = true;
+          try { localStorage.setItem('flycurse-ok', '1'); } catch (e2) {}
+          askName(); // the word opens the door; then it asks who you are
+        } else { inp.value = ''; inp.placeholder = 'not it.'; }
+      } else {
+        const v = inp.value.trim().slice(0, 24);
+        if (!v) return;
+        name = v;
+        try { localStorage.setItem('flycurse-name', v); } catch (e2) {}
+        open();
+      }
+    });
+  }
+}
+gateFor('arrow', initArrowGame);
 </script>
 </body>
 </html>

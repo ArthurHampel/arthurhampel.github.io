@@ -84,3 +84,47 @@ document.addEventListener('click', e => {
   refresh();
   setTimeout(refresh, 150); // the artifact preview renders pages a beat after load
 })();
+
+// FLY CURSE leaderboard — names and best scores, shared by everyone.
+// Paste your Firebase Realtime Database URL between the quotes below.
+const FLY_DB = ''; // e.g. 'https://flycurse-default-rtdb.firebaseio.com'
+
+function fcName() {
+  try { return localStorage.getItem('flycurse-name') || ''; } catch (e) { return ''; }
+}
+function fcKey(n) {
+  const k = n.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return k.slice(0, 24) || 'someone';
+}
+function fcEsc(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function fcSubmit(game, score) {
+  if (FLY_DB.indexOf('https:') !== 0) return; // no database yet; scores stay on this device
+  const n = fcName();
+  if (!n) return;
+  fetch(FLY_DB + '/leaderboard/' + game + '/' + fcKey(n) + '.json', {
+    method: 'PUT',
+    body: JSON.stringify({ name: n, score: score })
+  }).then(() => fcBoard(game)).catch(() => {});
+}
+function fcBoard(game) {
+  const el = document.getElementById('board-' + game);
+  if (!el) return;
+  if (FLY_DB.indexOf('https:') !== 0) { el.hidden = true; return; }
+  fetch(FLY_DB + '/leaderboard/' + game + '.json')
+    .then(r => r.json())
+    .then(data => {
+      const rows = Object.values(data || {})
+        .filter(e => e && e.name && typeof e.score === 'number')
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10);
+      if (!rows.length) { el.hidden = true; return; }
+      el.hidden = false;
+      el.innerHTML = '<p class="board-title">Leaderboard</p>' + rows.map((e, i) =>
+        '<div class="board-row"><span>' + (i + 1) + '. ' + fcEsc(e.name) +
+        '</span><span>' + e.score + '</span></div>').join('');
+    })
+    .catch(() => { el.hidden = true; });
+}

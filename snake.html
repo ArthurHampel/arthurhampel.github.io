@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Snake. A small game about appetite.">
+  <title>Snake · Arthur Hampel</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header>
+    <a class="target" id="target" href="index.html" aria-label="Home"><span class="breath" aria-hidden="true"></span></a>
+    <h1><a href="index.html">Arthur Hampel</a></h1>
+  </header>
+
+  <nav aria-label="Sections">
+    <a href="writing.html">Writing</a>
+    <a href="fascinating-thoughts.html">Fascinating Thoughts</a>
+    <a href="conversations.html">Conversations</a>
+    <a href="arrow.html" aria-current="page">Fly Curse</a>
+  </nav>
+
+  <nav class="subnav" aria-label="Games">
+    <a href="arrow.html">Arrow</a>
+    <a href="snake.html" aria-current="page">Snake</a>
+  </nav>
+
+  <div class="content">
+    <div class="gate" id="gate-snake" hidden>
+      <input type="password" placeholder="password" autocomplete="off" aria-label="Password">
+    </div>
+    <div id="area-snake" hidden>
+      <div class="range-wrap"><canvas id="snakec"></canvas></div>
+      <p class="quiet score" id="snake-score"></p>
+      <div class="board" id="board-snake" hidden></div>
+    </div>
+  </div>
+</main>
+<script src="site.js"></script>
+<script>
+// SNAKE: a small game about appetite. The dot is the food; eating it changes the site's color.
+function initSnakeGame() {
+  const canvas = document.getElementById('snakec');
+  if (!canvas || canvas.dataset.ready) return;
+  canvas.dataset.ready = '1';
+  const ctx = canvas.getContext('2d');
+  const col = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const rootS = document.documentElement.style;
+  const ALL = ['#3E6B5A', '#7A4A24', '#A6803A', '#8B3A3A', '#3A5A8B', '#6B4A8B'];
+  const dotColor = () => rootS.getPropertyValue('--dot').trim();
+  function cycleDot() {
+    const i = ALL.indexOf(dotColor());
+    const next = i < 0 ? ALL[0] : ALL[(i + 1) % ALL.length];
+    rootS.setProperty('--dot', next);
+    try { localStorage.setItem('dot-color', next); } catch (e) {}
+    return next;
+  }
+
+  let W, H, cell, COLS, ROWS;
+  function size() {
+    const DPR = window.devicePixelRatio || 1;
+    W = canvas.clientWidth; H = canvas.clientHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    COLS = Math.max(15, Math.round(W / 28));
+    cell = W / COLS;
+    ROWS = Math.max(10, Math.floor(H / cell));
+  }
+  size(); window.addEventListener('resize', () => { size(); reset(); });
+
+  let snake, dir, queued, food, dead, deadAt;
+  let eaten = 0;
+  function drawScore() {
+    let best = 0;
+    try { best = +localStorage.getItem('snake-best') || 0; } catch (e) {}
+    if (eaten > best) {
+      best = eaten;
+      try { localStorage.setItem('snake-best', best); } catch (e) {}
+      fcSubmit('snake', best); // a new best slithers up to the shared leaderboard
+    }
+    const sc = document.getElementById('snake-score');
+    const nm = fcName();
+    if (sc) sc.textContent = (nm ? nm + ' · ' : '') + eaten + (eaten === 1 ? ' dot' : ' dots') + (best ? ' · best ' + best : '');
+  }
+  function reset() {
+    const cx = Math.floor(COLS / 2), cy = Math.floor(ROWS / 2);
+    snake = [{ x: cx, y: cy }, { x: cx - 1, y: cy }, { x: cx - 2, y: cy }];
+    dir = { x: 1, y: 0 };
+    queued = null;
+    dead = false;
+    eaten = 0;
+    drawScore();
+    placeFood();
+  }
+  function placeFood() {
+    do {
+      food = { x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) };
+    } while (snake.some(s => s.x === food.x && s.y === food.y));
+  }
+  reset();
+
+  function turn(nx, ny) {
+    if (nx === -dir.x && ny === -dir.y) return; // no doubling back
+    queued = { x: nx, y: ny };
+  }
+  window.addEventListener('keydown', e => {
+    if (!canvas.offsetParent) return;
+    const k = e.key;
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(k)) e.preventDefault();
+    if (k === 'ArrowUp' || k === 'w') turn(0, -1);
+    else if (k === 'ArrowDown' || k === 's') turn(0, 1);
+    else if (k === 'ArrowLeft' || k === 'a') turn(-1, 0);
+    else if (k === 'ArrowRight' || k === 'd') turn(1, 0);
+  });
+  let swipe = null;
+  canvas.addEventListener('pointerdown', e => { swipe = { x: e.clientX, y: e.clientY }; });
+  canvas.addEventListener('pointerup', e => {
+    if (!swipe) return;
+    const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+    if (Math.hypot(dx, dy) > 18) {
+      if (Math.abs(dx) > Math.abs(dy)) turn(Math.sign(dx), 0);
+      else turn(0, Math.sign(dy));
+    }
+    swipe = null;
+  });
+
+  function step() {
+    if (queued) { dir = queued; queued = null; }
+    const head = { x: (snake[0].x + dir.x + COLS) % COLS, y: (snake[0].y + dir.y + ROWS) % ROWS };
+    if (snake.some(s => s.x === head.x && s.y === head.y)) {
+      dead = true; deadAt = performance.now();
+      return;
+    }
+    snake.unshift(head);
+    if (head.x === food.x && head.y === food.y) {
+      cycleDot();
+      eaten++;
+      drawScore();
+      placeFood();
+    } else {
+      snake.pop();
+    }
+  }
+
+  let last = performance.now(), acc = 0;
+  function frame(now) {
+    const dt = now - last; last = now;
+    if (dead) {
+      if (now - deadAt > 700) reset();
+    } else {
+      acc += dt;
+      const pace = Math.max(72, 118 - snake.length * 2);
+      while (acc > pace) { step(); acc -= pace; }
+    }
+
+    ctx.clearRect(0, 0, W, H);
+    const ink = col('--ink');
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // the food: the site's dot, breathing
+    const s = reduce ? 1 : 1 + .18 * Math.sin(now / 700);
+    ctx.fillStyle = dotColor() || ink;
+    ctx.beginPath();
+    ctx.arc((food.x + .5) * cell, (food.y + .5) * cell, cell * .34 * s, 0, 7);
+    ctx.fill();
+    // the snake: beads of ink
+    ctx.fillStyle = ink;
+    ctx.globalAlpha = dead ? Math.max(0, 1 - (now - deadAt) / 700) : 1;
+    snake.forEach((seg, i) => {
+      const r = i === 0 ? cell * .42 : cell * (.36 - Math.min(.1, i * .004));
+      ctx.beginPath();
+      ctx.arc((seg.x + .5) * cell, (seg.y + .5) * cell, r, 0, 7);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+function gateFor(which, init) {
+  const gate = document.getElementById('gate-' + which);
+  const area = document.getElementById('area-' + which);
+  const inp = gate.querySelector('input');
+  let ok = false, name = '';
+  try {
+    ok = localStorage.getItem('flycurse-ok') === '1';
+    name = localStorage.getItem('flycurse-name') || '';
+  } catch (e) {}
+  function open() {
+    gate.hidden = true; area.hidden = false;
+    setTimeout(init, 30);
+    try { const b = +localStorage.getItem(which + '-best') || 0; if (b) fcSubmit(which, b); } catch (e) {}
+    fcBoard(which);
+  }
+  function askName() {
+    gate.hidden = false; area.hidden = true;
+    inp.type = 'text'; inp.value = '';
+    inp.placeholder = 'your name'; inp.maxLength = 24;
+    inp.setAttribute('aria-label', 'Your name');
+    setTimeout(() => inp.focus(), 60);
+  }
+  if (ok && name) { open(); return; }
+  if (ok) { askName(); } else {
+    gate.hidden = false; area.hidden = true;
+    setTimeout(() => inp.focus(), 60);
+  }
+  if (!inp.dataset.wired) {
+    inp.dataset.wired = '1';
+    inp.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      if (!ok) {
+        if (inp.value.trim().toLowerCase() === 'flycurse') {
+          ok = true;
+          try { localStorage.setItem('flycurse-ok', '1'); } catch (e2) {}
+          askName(); // the word opens the door; then it asks who you are
+        } else { inp.value = ''; inp.placeholder = 'not it.'; }
+      } else {
+        const v = inp.value.trim().slice(0, 24);
+        if (!v) return;
+        name = v;
+        try { localStorage.setItem('flycurse-name', v); } catch (e2) {}
+        open();
+      }
+    });
+  }
+}
+gateFor('snake', initSnakeGame);
+</script>
+</body>
+</html>

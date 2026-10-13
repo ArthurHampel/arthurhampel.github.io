@@ -322,6 +322,12 @@ nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; bor
 .range-wrap {
   margin: 0 0 1.8rem;
 }
+#snakec {
+  display: block;
+  width: 100%;
+  height: 360px;
+  touch-action: none;
+}
 #range {
   display: block;
   width: 100%;
@@ -474,6 +480,28 @@ nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; bor
     background: color-mix(in oklab, var(--ground-old) calc((1 - var(--era)) * 100%), var(--ground-new));
   }
 }
+
+
+/* The games are behind a word. */
+.gate { text-align: center; padding: 3rem 0 4rem; }
+.gate input {
+  font-family: inherit;
+  font-style: italic;
+  font-size: 1.05rem;
+  text-align: center;
+  color: var(--ink);
+  background: var(--card);
+  border: none;
+  border-radius: .9rem;
+  padding: .5rem 1.1rem;
+  width: 13rem;
+}
+.gate input:focus-visible { outline: 2px solid var(--accent); }
+.score { text-align: center; margin-top: 1rem; }
+.board { max-width: 20rem; margin: 2rem auto 0; }
+.board-title { text-align: center; font-style: italic; color: var(--ink-soft); margin: 0 0 .5rem; }
+.board-row { display: flex; justify-content: space-between; gap: 1rem; padding: .32rem 0; border-bottom: 1px solid var(--rule); font-variant-numeric: tabular-nums; }
+.board-row:last-child { border-bottom: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .breath { animation: none; }
